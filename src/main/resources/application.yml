@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: 'finance_module'
+  mongodb:
+    uri: '${MONGO_URL}'
+  mvc:
+    apiversion:
+      required: true
+      use:
+        path-segment: 1
+      supported:
+        - 1
