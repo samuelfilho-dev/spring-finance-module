@@ -10,6 +10,7 @@ import com.samuelfilho_dev.finance_module.users.repositories.AddressRepository;
 import com.samuelfilho_dev.finance_module.users.repositories.UserRepository;
 import com.samuelfilho_dev.finance_module.users.services.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -22,6 +23,7 @@ import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
@@ -39,6 +41,8 @@ public class UserServiceImpl implements UserService {
 
         var user = userRepository.save(newUser);
 
+        log.info("Usuario foi criado: {}", user);
+
         if (payload.address() != null) {
             var newAddress = Address.builder()
                     .street(payload.address().street())
@@ -50,6 +54,8 @@ public class UserServiceImpl implements UserService {
                     .userId(new ObjectId(user.getId()))
                     .build();
 
+            log.info("Endereco foi criado: {}", newAddress);
+
             addressRepository.save(newAddress);
         }
 
@@ -58,6 +64,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserResponse> findAllUsers() {
+        log.info("Listando todos os usuarios");
+
         var lookup = createLookup();
         var unwind = Aggregation.unwind("address", true);
         var aggregation = Aggregation.newAggregation(lookup, unwind);
@@ -68,6 +76,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse findUserById(String id) {
+        log.info("Buscando o usuario pelo id: {}", id);
+
         var lookup = createLookup();
         var unwind = Aggregation.unwind("address", true);
         var aggregation = Aggregation.newAggregation(
@@ -86,6 +96,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse findUserByEmail(String email) {
+        log.info("Buscando o usuario pelo email: {}", email);
+
         var userResponse = userRepository.findUserByEmail(email)
                 .orElseThrow(() -> new NoSuchElementException(("Usuário não encontrado")));
 
@@ -101,6 +113,8 @@ public class UserServiceImpl implements UserService {
         user.setEmail(payload.email());
         userRepository.save(user);
 
+        log.info("Usuario {} foi modificado: {}", id, user);
+
         if (payload.address() != null) {
             var userId = new ObjectId(user.getId());
             var address = addressRepository.findByUserId(userId)
@@ -114,6 +128,8 @@ public class UserServiceImpl implements UserService {
             address.setPostalCode(payload.address().postalCode());
 
             addressRepository.save(address);
+
+            log.info("Endereco com id {} foi modificado ou criado: {}", address.id, address);
         }
 
         return this.findUserById(id);
@@ -125,9 +141,11 @@ public class UserServiceImpl implements UserService {
 
         if (user.address() != null) {
             addressRepository.deleteById(user.address().id());
+            log.info("Endereco com id {} foi deletado: {}", user.address().id(), user.address());
         }
 
         userRepository.deleteById(user.id());
+        log.info("Usuario {} foi deletado: {}", id, user);
     }
 
     private LookupOperation createLookup() {
