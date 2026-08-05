@@ -1,6 +1,7 @@
 package com.samuelfilho_dev.finance_module.users.services.impl;
 
 import com.samuelfilho_dev.finance_module.users.dtos.CreateUserRequest;
+import com.samuelfilho_dev.finance_module.users.dtos.UpdateUserRequest;
 import com.samuelfilho_dev.finance_module.users.dtos.UserResponse;
 import com.samuelfilho_dev.finance_module.users.entities.Address;
 import com.samuelfilho_dev.finance_module.users.entities.User;
@@ -13,6 +14,7 @@ import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.LookupOperation;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -56,12 +58,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserResponse> findAllUsers() {
-        var lookup = LookupOperation.newLookup()
-                .from("address")
-                .localField("_id")
-                .foreignField("userId")
-                .as("address");
-
+        var lookup = createLookup();
         var unwind = Aggregation.unwind("address", true);
         var aggregation = Aggregation.newAggregation(lookup, unwind);
         var users = mongoTemplate.aggregate(aggregation, User.class, User.class).getMappedResults();
@@ -71,10 +68,20 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse findUserById(String id) {
-        var userResponse = userRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException(("Usuário não encontrado")));
+        var lookup = createLookup();
+        var unwind = Aggregation.unwind("address", true);
+        var aggregation = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("id").is(id)),
+                lookup,
+                unwind
+        );
+        var user = mongoTemplate.aggregate(aggregation, User.class, User.class)
+                .getMappedResults()
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado"));
 
-        return userMapper.toResponse(userResponse);
+        return userMapper.toResponse(user);
     }
 
     @Override
@@ -86,13 +93,48 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse updateUserById(String id, UserResponse payload) {
-        return null;
+    public UserResponse updateUserById(String id, UpdateUserRequest payload) {
+        var user = userRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado"));
+
+        user.setName(payload.name());
+        user.setEmail(payload.email());
+        userRepository.save(user);
+
+        if (payload.address() != null) {
+            var userId = new ObjectId(user.getId());
+            var address = addressRepository.findByUserId(userId)
+                    .orElseGet(() -> Address.builder().userId(userId).build());
+
+            address.setStreet(payload.address().street());
+            address.setNumber(payload.address().number());
+            address.setComplement(payload.address().complement());
+            address.setCity(payload.address().city());
+            address.setState(payload.address().state());
+            address.setPostalCode(payload.address().postalCode());
+
+            addressRepository.save(address);
+        }
+
+        return this.findUserById(id);
     }
 
     @Override
     public void deleteUserById(String id) {
+        var user = this.findUserById(id);
 
+        if (user.address() != null) {
+            addressRepository.deleteById(user.address().id());
+        }
+
+        userRepository.deleteById(user.id());
     }
 
+    private LookupOperation createLookup() {
+        return LookupOperation.newLookup()
+                .from("address")
+                .localField("_id")
+                .foreignField("userId")
+                .as("address");
+    }
 }
