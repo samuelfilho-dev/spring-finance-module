@@ -35,7 +35,7 @@ public class BankAccountImpl implements BankAccountService {
                 .orElseThrow(() -> new NoSuchElementException("Usuario não encontrado"));
 
         var newBankAccount = BankAccount.builder()
-                .bankName(payload.bankName())
+                .bankName(this.normalizeBankAccountName(payload.bankName()))
                 .agency(payload.agency())
                 .accountNumber(payload.accountNumber())
                 .balance(Objects.requireNonNullElse(payload.balance(), BigDecimal.ZERO))
@@ -94,5 +94,22 @@ public class BankAccountImpl implements BankAccountService {
 
         log.info("Conta Bancaria foi deletada");
         bankAccountRepository.save(bankAccount);
+    }
+
+    private String normalizeBankAccountName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Nome do Banco é requerido");
+        }
+
+        var normalized = name
+                .trim()
+                .replaceAll("[^a-zA-Z0-9]+", "_")
+                .toUpperCase()
+                .replaceAll("_+", "_")
+                .replaceAll("^_|_$", "");
+
+        return normalized.startsWith("BANCO_")
+                ? normalized
+                : "BANCO_" + normalized;
     }
 }

@@ -1,5 +1,6 @@
 package com.samuelfilho_dev.finance_module.users.entities;
 
+import com.samuelfilho_dev.finance_module.account.entities.BankAccount;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -8,6 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
+import java.util.List;
 
 @Document(collection = "users")
 @Getter
@@ -33,4 +35,7 @@ public class User {
 
     @Field
     private Address address;
+
+    @Field
+    private List<BankAccount> accounts;
 }

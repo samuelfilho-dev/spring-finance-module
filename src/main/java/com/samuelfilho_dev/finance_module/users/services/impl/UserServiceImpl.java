@@ -66,7 +66,7 @@ public class UserServiceImpl implements UserService {
     public List<UserResponse> findAllUsers() {
         log.info("Listando todos os usuarios");
 
-        var lookup = createLookup();
+        var lookup = createAddressLookup();
         var unwind = Aggregation.unwind("address", true);
         var aggregation = Aggregation.newAggregation(lookup, unwind);
         var users = mongoTemplate.aggregate(aggregation, User.class, User.class).getMappedResults();
@@ -78,13 +78,21 @@ public class UserServiceImpl implements UserService {
     public UserResponse findUserById(String id) {
         log.info("Buscando o usuario pelo id: {}", id);
 
-        var lookup = createLookup();
+        var addressLookup = createAddressLookup();
+        var accountsLookup = LookupOperation.newLookup()
+                .from("bankAccounts")
+                .localField("_id")
+                .foreignField("userId")
+                .as("accounts");
+
         var unwind = Aggregation.unwind("address", true);
         var aggregation = Aggregation.newAggregation(
                 Aggregation.match(Criteria.where("id").is(id)),
-                lookup,
+                addressLookup,
+                accountsLookup,
                 unwind
         );
+
         var user = mongoTemplate.aggregate(aggregation, User.class, User.class)
                 .getMappedResults()
                 .stream()
@@ -148,7 +156,7 @@ public class UserServiceImpl implements UserService {
         log.info("Usuario {} foi deletado: {}", id, user);
     }
 
-    private LookupOperation createLookup() {
+    private LookupOperation createAddressLookup() {
         return LookupOperation.newLookup()
                 .from("address")
                 .localField("_id")
