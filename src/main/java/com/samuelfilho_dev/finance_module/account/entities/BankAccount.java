@@ -31,7 +31,7 @@ public class BankAccount {
 
     private BankAccountStatus status;
 
-    public ObjectId userId;
+    private ObjectId userId;
 
     @CreatedDate
     private Instant createAt;
