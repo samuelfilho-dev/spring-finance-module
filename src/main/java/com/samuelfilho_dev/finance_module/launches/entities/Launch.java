@@ -31,6 +31,8 @@ public class Launch {
 
     private LaunchType type;
 
+    private String fitId;
+
     private ObjectId userId;
 
     private ObjectId bankAccountId;

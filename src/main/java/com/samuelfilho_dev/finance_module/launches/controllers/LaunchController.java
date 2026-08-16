@@ -1,15 +1,16 @@
 package com.samuelfilho_dev.finance_module.launches.controllers;
 
-import com.samuelfilho_dev.finance_module.launches.dtos.CreateLaunchRequest;
-import com.samuelfilho_dev.finance_module.launches.dtos.LaunchResponse;
-import com.samuelfilho_dev.finance_module.launches.dtos.UpdateLaunchRequest;
+import com.samuelfilho_dev.finance_module.launches.dtos.*;
 import com.samuelfilho_dev.finance_module.launches.services.LaunchService;
+import com.samuelfilho_dev.finance_module.launches.services.OfxParserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -17,6 +18,7 @@ import java.util.List;
 @RequestMapping(value = "api/{version}/launches", version = "1")
 public class LaunchController {
     private final LaunchService launchService;
+    private final OfxParserService ofxParserService;
 
     @GetMapping
     public ResponseEntity<List<LaunchResponse>> listLaunches() {
@@ -47,5 +49,10 @@ public class LaunchController {
     public ResponseEntity<LaunchResponse> deleteLaunch(@PathVariable String id) {
         this.launchService.deleteLaunch(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "ofx", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<OfxResponse> createLaunchesByOfxFile(@ModelAttribute CreateOfxParserRequest payload) {
+        return ResponseEntity.ok(this.ofxParserService.exec(payload));
     }
 }
