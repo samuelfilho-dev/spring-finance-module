@@ -1,6 +1,7 @@
 package com.samuelfilho_dev.finance_module.launches.services.impl;
 
 import com.samuelfilho_dev.finance_module.account.repositories.BankAccountRepository;
+import com.samuelfilho_dev.finance_module.exceptions.NotFoundException;
 import com.samuelfilho_dev.finance_module.launches.dtos.CreateLaunchRequest;
 import com.samuelfilho_dev.finance_module.launches.dtos.LaunchResponse;
 import com.samuelfilho_dev.finance_module.launches.dtos.UpdateLaunchRequest;
@@ -40,7 +41,7 @@ public class LaunchServiceImpl implements LaunchService {
     @Override
     public LaunchResponse findLaunchById(String id) {
         var launch = this.launchRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Lançamento não encontrado"));
+                .orElseThrow(() -> new NotFoundException("Lançamento não encontrado"));
 
         log.info("Foi encontrado lançamento com ID: {}", launch.getId());
         return launchMapper.toResponse(launch);
@@ -49,10 +50,10 @@ public class LaunchServiceImpl implements LaunchService {
     @Override
     public LaunchResponse createLaunch(CreateLaunchRequest payload) {
         userRepository.findById(payload.userId())
-                .orElseThrow(() -> new NoSuchElementException("Usuario não encontrado"));
+                .orElseThrow(() -> new NotFoundException("Usuario não encontrado"));
 
         var bankAccount = bankAccountRepository.findById(payload.bankAccountId())
-                .orElseThrow(() -> new NoSuchElementException("Conta Bancaria não encontrada"));
+                .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
 
         var launch = Launch.builder()
                 .title(payload.title())
@@ -86,10 +87,10 @@ public class LaunchServiceImpl implements LaunchService {
     @Transactional(rollbackFor = Exception.class)
     public LaunchResponse updateLaunch(String id, UpdateLaunchRequest payload) {
         var launch = this.launchRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Lançamento não encontrado"));
+                .orElseThrow(() -> new NotFoundException("Lançamento não encontrado"));
 
         var bankAccount = bankAccountRepository.findById(launch.getBankAccountId().toString())
-                .orElseThrow(() -> new NoSuchElementException("Conta Bancaria não encontrada"));
+                .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
 
         var oldType = launch.getType();
         var oldAmount = launch.getAmount();
@@ -134,10 +135,10 @@ public class LaunchServiceImpl implements LaunchService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteLaunch(String id) {
         var launch = this.launchRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Lançamento não encontrado"));
+                .orElseThrow(() -> new NotFoundException("Lançamento não encontrado"));
 
         var bankAccount = bankAccountRepository.findById(launch.getBankAccountId().toString())
-                .orElseThrow(() -> new NoSuchElementException("Conta Bancaria não encontrada"));
+                .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
 
         var reversedBalance = LaunchUtils.reverseBalance(
                 launch.getType(),

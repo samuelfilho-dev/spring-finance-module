@@ -1,6 +1,7 @@
 package com.samuelfilho_dev.finance_module.launches.services.impl;
 
 import com.samuelfilho_dev.finance_module.account.repositories.BankAccountRepository;
+import com.samuelfilho_dev.finance_module.exceptions.OfxException;
 import com.samuelfilho_dev.finance_module.launches.dtos.CreateOfxParserRequest;
 import com.samuelfilho_dev.finance_module.launches.dtos.OfxResponse;
 import com.samuelfilho_dev.finance_module.launches.entities.Launch;
@@ -105,7 +106,7 @@ public class OfxParserServiceImpl implements OfxParserService {
             );
         } catch (IOException e) {
             log.error("Falha ao ler o arquivo OFX: {}", e.getMessage(), e);
-            throw new RuntimeException("Falha ao ler o arquivo OFX: " + e.getMessage(), e);
+            throw new OfxException("Falha ao ler o arquivo OFX: " + e.getMessage(), e);
         }
     }
 
@@ -180,7 +181,7 @@ public class OfxParserServiceImpl implements OfxParserService {
 
             return builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
-            throw new RuntimeException("Falha ao interpretar o XML normalizado do OFX: " + e.getMessage(), e);
+            throw new OfxException("Falha ao interpretar o XML normalizado do OFX: " + e.getMessage(), e);
         }
     }
 
@@ -193,12 +194,12 @@ public class OfxParserServiceImpl implements OfxParserService {
 
         var ofxTagStart = content.indexOf("<OFX>");
         if (ofxTagStart < 0) {
-            throw new RuntimeException("Invalid OFX file: missing <OFX> tag");
+            throw new OfxException("Arquivo OFX inválido: tag <OFX> não encontrada.");
         }
 
         var header = content.substring(0, ofxTagStart);
         if (!header.contains("OFXHEADER")) {
-            throw new RuntimeException("Cabeçalho OFX (OFXHEADER) ausente ou inválido.");
+            throw new OfxException("Cabeçalho OFX (OFXHEADER) ausente ou inválido.");
         }
 
         var body = content.substring(ofxTagStart + "<OFX>".length());
@@ -209,7 +210,7 @@ public class OfxParserServiceImpl implements OfxParserService {
         try {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new RuntimeException("Error reading input stream", e);
+            throw new OfxException("Error reading input stream", e);
         }
     }
 
@@ -252,7 +253,7 @@ public class OfxParserServiceImpl implements OfxParserService {
         try {
             return new BigDecimal(raw.replace(",", "."));
         } catch (NumberFormatException e) {
-            throw new RuntimeException("Falha ao interpretar o valor monetário OFX: " + raw, e);
+            throw new OfxException("Falha ao interpretar o valor monetário OFX: " + raw, e);
         }
     }
 
@@ -264,7 +265,7 @@ public class OfxParserServiceImpl implements OfxParserService {
         try {
             return LocalDate.parse(digits, OFX_DATE);
         } catch (Exception e) {
-            throw new RuntimeException("Falha ao interpretar a data OFX: " + raw, e);
+            throw new OfxException("Falha ao interpretar a data OFX: " + raw, e);
         }
     }
 

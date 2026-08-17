@@ -1,5 +1,6 @@
 package com.samuelfilho_dev.finance_module.users.services.impl;
 
+import com.samuelfilho_dev.finance_module.exceptions.NotFoundException;
 import com.samuelfilho_dev.finance_module.users.dtos.CreateUserRequest;
 import com.samuelfilho_dev.finance_module.users.dtos.UpdateUserRequest;
 import com.samuelfilho_dev.finance_module.users.dtos.UserResponse;
@@ -19,7 +20,6 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
@@ -97,7 +97,7 @@ public class UserServiceImpl implements UserService {
                 .getMappedResults()
                 .stream()
                 .findFirst()
-                .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado"));
+                .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
 
         return userMapper.toResponse(user);
     }
@@ -107,7 +107,7 @@ public class UserServiceImpl implements UserService {
         log.info("Buscando o usuario pelo email: {}", email);
 
         var userResponse = userRepository.findUserByEmail(email)
-                .orElseThrow(() -> new NoSuchElementException(("Usuário não encontrado")));
+                .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
 
         return userMapper.toResponse(userResponse);
     }
@@ -115,7 +115,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse updateUserById(String id, UpdateUserRequest payload) {
         var user = userRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado"));
+                .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
 
         user.setName(payload.name());
         user.setEmail(payload.email());

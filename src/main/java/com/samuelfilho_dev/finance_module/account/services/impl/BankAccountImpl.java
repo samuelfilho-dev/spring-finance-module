@@ -8,6 +8,8 @@ import com.samuelfilho_dev.finance_module.account.enums.BankAccountStatus;
 import com.samuelfilho_dev.finance_module.account.mappers.BankAccountMapper;
 import com.samuelfilho_dev.finance_module.account.repositories.BankAccountRepository;
 import com.samuelfilho_dev.finance_module.account.services.BankAccountService;
+import com.samuelfilho_dev.finance_module.exceptions.BusinessException;
+import com.samuelfilho_dev.finance_module.exceptions.NotFoundException;
 import com.samuelfilho_dev.finance_module.users.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +34,7 @@ public class BankAccountImpl implements BankAccountService {
     @Override
     public BankAccountResponse createBankAccount(CreateBankAccountRequest payload) {
         userRepository.findById(payload.userId())
-                .orElseThrow(() -> new NoSuchElementException("Usuario não encontrado"));
+                .orElseThrow(() -> new NotFoundException("Usuario não encontrado"));
 
         var newBankAccount = BankAccount.builder()
                 .bankName(this.normalizeBankAccountName(payload.bankName()))
@@ -64,7 +66,7 @@ public class BankAccountImpl implements BankAccountService {
     @Override
     public BankAccountResponse findBankAccountById(String id) {
         var bankAccount = bankAccountRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Conta Bancaria não encontrada"));
+                .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
 
         log.info("Conta Bancaria com id {} foi encontrada", bankAccount.getId());
         return bankAccountMapper.toResponse(bankAccount);
@@ -73,7 +75,7 @@ public class BankAccountImpl implements BankAccountService {
     @Override
     public BankAccountResponse updateBankAccount(String id, UpdateBankAccountRequest payload) {
         var bankAccount = bankAccountRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Conta Bancaria não encontrada"));
+                .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
 
         bankAccount.setBankName(payload.bankName());
         bankAccount.setAgency(payload.agency());
@@ -88,7 +90,7 @@ public class BankAccountImpl implements BankAccountService {
     @Override
     public void deleteBankAccount(String id) {
         var bankAccount = bankAccountRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Conta Bancaria não encontrada"));
+                .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
 
         bankAccount.setStatus(BankAccountStatus.INACTIVE);
 
@@ -98,7 +100,7 @@ public class BankAccountImpl implements BankAccountService {
 
     private String normalizeBankAccountName(String name) {
         if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Nome do Banco é requerido");
+            throw new BusinessException("Nome do Banco é requerido");
         }
 
         var normalized = name
