@@ -4,11 +4,18 @@ import com.samuelfilho_dev.finance_module.exceptions.BusinessException;
 import com.samuelfilho_dev.finance_module.exceptions.NotFoundException;
 import com.samuelfilho_dev.finance_module.exceptions.dtos.ApiError;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        var status = org.springframework.http.HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(ApiError.of(status, "Erro ao realizar o parser no JSON"));
+    }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiError> handleBusinessException(BusinessException ex) {

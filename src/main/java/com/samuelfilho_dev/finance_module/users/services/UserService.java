@@ -1,15 +1,15 @@
 package com.samuelfilho_dev.finance_module.users.services
 ;
 
+import com.samuelfilho_dev.finance_module.auth.dtos.AuthPreTokenResponse;
 import com.samuelfilho_dev.finance_module.users.dtos.CreateUserRequest;
 import com.samuelfilho_dev.finance_module.users.dtos.UpdateUserRequest;
 import com.samuelfilho_dev.finance_module.users.dtos.UserResponse;
-import org.bson.Document;
 
 import java.util.List;
 
 public interface UserService {
-    UserResponse createUser(CreateUserRequest payload);
+    AuthPreTokenResponse createUser(CreateUserRequest payload);
 
     List<UserResponse> findAllUsers();
 

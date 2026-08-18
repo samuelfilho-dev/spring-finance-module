@@ -1,5 +1,6 @@
 package com.samuelfilho_dev.finance_module.users.controllers;
 
+import com.samuelfilho_dev.finance_module.auth.dtos.AuthPreTokenResponse;
 import com.samuelfilho_dev.finance_module.users.dtos.CreateUserRequest;
 import com.samuelfilho_dev.finance_module.users.dtos.UpdateUserRequest;
 import com.samuelfilho_dev.finance_module.users.dtos.UserResponse;
@@ -29,7 +30,7 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest payload) {
+    public ResponseEntity<AuthPreTokenResponse> createUser(@Valid @RequestBody CreateUserRequest payload) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(payload));
     }
 

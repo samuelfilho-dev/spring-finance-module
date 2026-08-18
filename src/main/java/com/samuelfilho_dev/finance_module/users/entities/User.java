@@ -27,6 +27,14 @@ public class User {
 
     private String password;
 
+    private String mfaSecret;
+
+    @Builder.Default
+    private Boolean isMfaActivated = false;
+
+    @Builder.Default
+    private String role = "ROLE_USER";
+
     @CreatedDate
     private Instant createAt;
 

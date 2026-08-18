@@ -1,5 +1,9 @@
 package com.samuelfilho_dev.finance_module.users.services.impl;
 
+import com.samuelfilho_dev.finance_module.auth.dtos.AuthPreTokenResponse;
+import com.samuelfilho_dev.finance_module.auth.services.JwtService;
+import com.samuelfilho_dev.finance_module.auth.services.MfaFactorService;
+import com.samuelfilho_dev.finance_module.exceptions.BusinessException;
 import com.samuelfilho_dev.finance_module.exceptions.NotFoundException;
 import com.samuelfilho_dev.finance_module.users.dtos.CreateUserRequest;
 import com.samuelfilho_dev.finance_module.users.dtos.UpdateUserRequest;
@@ -10,6 +14,7 @@ import com.samuelfilho_dev.finance_module.users.mappers.UserMapper;
 import com.samuelfilho_dev.finance_module.users.repositories.AddressRepository;
 import com.samuelfilho_dev.finance_module.users.repositories.UserRepository;
 import com.samuelfilho_dev.finance_module.users.services.UserService;
+import com.samuelfilho_dev.finance_module.utils.AESService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
@@ -17,7 +22,9 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.LookupOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -30,18 +37,34 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final MongoTemplate mongoTemplate;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final MfaFactorService mfaFactorService;
+    private final AESService aesService;
 
     @Override
-    public UserResponse createUser(CreateUserRequest payload) {
+    @Transactional(rollbackFor = Exception.class)
+    public AuthPreTokenResponse createUser(CreateUserRequest payload) {
+        if (userRepository.existsByEmail(payload.email())) {
+            throw new BusinessException("Email já cadastrado");
+        }
+
+        var secret = aesService.encrypt(mfaFactorService.generateSecret());
+
         var newUser = User.builder()
                 .name(payload.name())
                 .email(payload.email())
-                .password(payload.password())
+                .mfaSecret(secret)
+                .password(passwordEncoder.encode(payload.password()))
                 .build();
 
         var user = userRepository.save(newUser);
 
         log.info("Usuario foi criado: {}", user);
+
+        var otpAuthUrl = mfaFactorService.buildOtpAuthUrl(user.getEmail(), secret);
+        var qrCodeBase64 = mfaFactorService.generateQrCodeImageBase64(user.getEmail(), secret);
+        var setupToken = jwtService.generateSetupToken(user);
 
         if (payload.address() != null) {
             var newAddress = Address.builder()
@@ -59,7 +82,14 @@ public class UserServiceImpl implements UserService {
             addressRepository.save(newAddress);
         }
 
-        return userMapper.toResponse(user);
+        return new AuthPreTokenResponse(
+                true,
+                "2FA é obrigatório. Escaneie o QR Code enviado",
+                "/api/v1/auth/mfa/enable",
+                setupToken,
+                qrCodeBase64,
+                otpAuthUrl
+        );
     }
 
     @Override
