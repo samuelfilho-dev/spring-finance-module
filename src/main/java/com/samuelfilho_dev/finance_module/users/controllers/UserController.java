@@ -34,6 +34,11 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(payload));
     }
 
+    @PostMapping("create-admin")
+    public ResponseEntity<UserResponse> createAdmin(@Valid @RequestBody CreateUserRequest payload) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createAdminUser(payload));
+    }
+
     @PutMapping("{id}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable String id,
                                                    @Valid @RequestBody UpdateUserRequest payload) {

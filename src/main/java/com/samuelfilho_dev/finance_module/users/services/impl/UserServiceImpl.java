@@ -93,6 +93,26 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserResponse createAdminUser(CreateUserRequest payload) {
+        if (userRepository.existsByEmail(payload.email())) {
+            throw new BusinessException("Email já cadastrado");
+        }
+
+        var secret = aesService.encrypt(mfaFactorService.generateSecret());
+
+        var newUser = User.builder()
+                .name(payload.name())
+                .email(payload.email())
+                .password(passwordEncoder.encode(payload.password()))
+                .mfaSecret(secret)
+                .role("ROLE_ADMIN")
+                .build();
+
+        var user = userRepository.save(newUser);
+        return userMapper.toResponse(user);
+    }
+
+    @Override
     public List<UserResponse> findAllUsers() {
         log.info("Listando todos os usuarios");
 

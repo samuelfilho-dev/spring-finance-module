@@ -1,8 +1,9 @@
 package com.samuelfilho_dev.finance_module.auth.controllers;
 
-import com.samuelfilho_dev.finance_module.auth.dtos.AuthGenericResponse;
+import com.samuelfilho_dev.finance_module.auth.dtos.AuthResponse;
 import com.samuelfilho_dev.finance_module.auth.dtos.CreateLoginRequest;
 import com.samuelfilho_dev.finance_module.auth.dtos.MfaRequest;
+import com.samuelfilho_dev.finance_module.auth.dtos.ResetMfaRequest;
 import com.samuelfilho_dev.finance_module.auth.services.LoginService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,15 +20,15 @@ public class AuthController {
     public final LoginService loginService;
 
     @PostMapping("login")
-    public ResponseEntity<AuthGenericResponse> login(@Valid @RequestBody CreateLoginRequest payload) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody CreateLoginRequest payload) {
         return ResponseEntity.ok(loginService.login(payload));
     }
 
     @PostMapping("mfa/enable")
-    public ResponseEntity<AuthGenericResponse> enableMfaFactor(@Valid @RequestBody MfaRequest payload) {
+    public ResponseEntity<AuthResponse> enableMfaFactor(@Valid @RequestBody MfaRequest payload) {
         this.loginService.enableMfaFactor(payload);
 
-        return ResponseEntity.ok().body(new AuthGenericResponse(
+        return ResponseEntity.ok().body(new AuthResponse(
                 true,
                 "2FA Ativado com sucesso",
                 "/api/v1/auth/login",
@@ -36,8 +37,12 @@ public class AuthController {
     }
 
     @PostMapping("mfa/verify")
-    public ResponseEntity<AuthGenericResponse> verifyMfaFactor(@Valid @RequestBody MfaRequest payload) {
+    public ResponseEntity<AuthResponse> verifyMfaFactor(@Valid @RequestBody MfaRequest payload) {
         return ResponseEntity.ok((this.loginService.verifyMfaFactor(payload)));
     }
 
+    @PostMapping("mfa/reset")
+    public ResponseEntity<AuthResponse> resetMfaFactor(@Valid @RequestBody ResetMfaRequest payload) {
+        return ResponseEntity.ok((this.loginService.resetMfaFactor(payload)));
+    }
 }

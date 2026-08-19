@@ -6,6 +6,7 @@ app:
     pre-auth-token-expiration-ms: 300000 # 5 Minutes
     setup-token-expiration-ms: 600000 # 10 Minutes
   secret:
+    admin-password: '${ADMIN_PASSWORD}'
     mfa-secret: '${MFA_SECRET}'
 
 spring:

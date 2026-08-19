@@ -1,8 +1,9 @@
 package com.samuelfilho_dev.finance_module.auth.services.impl;
 
-import com.samuelfilho_dev.finance_module.auth.dtos.AuthGenericResponse;
+import com.samuelfilho_dev.finance_module.auth.dtos.AuthResponse;
 import com.samuelfilho_dev.finance_module.auth.dtos.CreateLoginRequest;
 import com.samuelfilho_dev.finance_module.auth.dtos.MfaRequest;
+import com.samuelfilho_dev.finance_module.auth.dtos.ResetMfaRequest;
 import com.samuelfilho_dev.finance_module.auth.services.JwtService;
 import com.samuelfilho_dev.finance_module.auth.services.LoginService;
 import com.samuelfilho_dev.finance_module.auth.services.MfaFactorService;
@@ -29,7 +30,7 @@ public class LoginServiceImpl implements LoginService {
     private final AESService aesService;
 
     @Override
-    public AuthGenericResponse login(CreateLoginRequest payload) {
+    public AuthResponse login(CreateLoginRequest payload) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(payload.email(), payload.password())
         );
@@ -37,13 +38,29 @@ public class LoginServiceImpl implements LoginService {
         var user = this.findUserByEmailHandler(payload.email());
 
         if (!user.getIsMfaActivated()) {
-            log.error("Usuario {} não tem 2FA ativo", payload.email());
-            throw new UnauthorizedException("Usuario sem 2FA ativo");
+            log.warn("Usuario {} não tem 2FA ativo", payload.email());
+
+            var setupToken = this.jwtService.generateSetupToken(user);
+
+            if (user.getMfaSecret() == null) {
+                var secret = aesService.encrypt(mfaFactorService.generateSecret());
+                user.setMfaSecret(secret);
+                userRepository.save(user);
+            }
+
+            return new AuthResponse(
+                    true,
+                    "2FA obrigatório e ainda não configurado.",
+                    "/api/v1/auth/mfa/setup",
+                    setupToken,
+                    mfaFactorService.generateQrCodeImageBase64(user.getEmail(), aesService.decrypt(user.getMfaSecret())),
+                    mfaFactorService.buildOtpAuthUrl(user.getEmail(), aesService.decrypt(user.getMfaSecret()))
+            );
         }
 
         var preToken = this.jwtService.generatePreAuthToken(user);
 
-        return new AuthGenericResponse(
+        return new AuthResponse(
                 true,
                 "Credenciais válidas. Informe o código do seu app autenticador",
                 "/api/v1/auth/mfa/verify",
@@ -52,7 +69,7 @@ public class LoginServiceImpl implements LoginService {
     }
 
     @Override
-    public AuthGenericResponse verifyMfaFactor(MfaRequest payload) {
+    public AuthResponse verifyMfaFactor(MfaRequest payload) {
         var user = findUserByEmailHandler(payload.email());
 
         var secret = aesService.decrypt(user.getMfaSecret());
@@ -64,7 +81,7 @@ public class LoginServiceImpl implements LoginService {
 
         var token = this.jwtService.generateAccessToken(user);
 
-        return new AuthGenericResponse(
+        return new AuthResponse(
                 true,
                 "MFA verificado com sucesso",
                 null,
@@ -91,11 +108,28 @@ public class LoginServiceImpl implements LoginService {
         userRepository.save(user);
     }
 
+    @Override
+    public AuthResponse resetMfaFactor(ResetMfaRequest payload) {
+        var user = findUserByEmailHandler(payload.email());
+
+        var secret = aesService.encrypt(mfaFactorService.generateSecret());
+        user.setMfaSecret(secret);
+        user.setIsMfaActivated(false);
+        userRepository.save(user);
+
+        return new AuthResponse(
+                true,
+                "2FA resetado com sucesso",
+                null,
+                null
+        );
+    }
+
     private User findUserByEmailHandler(String email) {
         return userRepository.findUserByEmail(email).orElseThrow(
                 () -> {
                     log.error("Usuário não encontrado com esse email {}", email);
-                    return new BusinessException("Email ou código incorreto");
+                    return new BusinessException("Email ou senha incorreto");
                 }
         );
     }

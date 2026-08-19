@@ -11,6 +11,8 @@ import java.util.List;
 public interface UserService {
     AuthPreTokenResponse createUser(CreateUserRequest payload);
 
+    UserResponse createAdminUser(CreateUserRequest payload);
+
     List<UserResponse> findAllUsers();
 
     UserResponse findUserById(String id);
