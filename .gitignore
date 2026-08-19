@@ -35,3 +35,4 @@ build/
 
 # OTHERS
 keys/**
+logs/**

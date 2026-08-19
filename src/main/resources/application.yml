@@ -21,3 +21,24 @@ spring:
         path-segment: 1
       supported:
         - 1
+
+logging:
+  file:
+    path: ./logs
+
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 15
+      total-size-cap: 1GB
+      file-name-pattern: logs/app-%d{yyyy-MM-dd}.%i.log
+
+  level:
+    root: INFO
+    com.samuelfilho_dev.finance_module: DEBUG
+    org.springframework: WARN
+    org.hibernate: DEBUG
+
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %clr(%-5level) %clr(${PID:- }){magenta} --- [%thread] %cyan(%logger{36}) - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} ${PID:- } --- [%thread] %-5level %logger{36} - %msg%n"
