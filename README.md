@@ -1,17 +1,19 @@
 # Finance Module
 
-API REST modular para gestão de usuários, contas bancárias e lançamentos financeiros. O projeto usa Java 17, Spring Boot 4.1 e MongoDB. Autenticação é JWT (RSA) com 2FA TOTP obrigatório. Lançamentos podem ser criados manualmente ou importados de arquivos OFX.
+API REST modular para gestão de usuários, contas bancárias e lançamentos financeiros. O projeto usa Java 17, Spring Boot
+4.1 e MongoDB. Autenticação é JWT (RSA) com 2FA TOTP obrigatório. Lançamentos podem ser criados manualmente ou
+importados de arquivos OFX.
 
 ## Status
 
-Fases 0, 1 e 2 estão concluídas. A fase 3 (cobertura de testes) está no início — hoje existe apenas o teste de contexto da aplicação.
+Fases 0, 1 e 2 estão concluídas. A fase 3 tem os testes unitários da API cobertos; faltam os testes de integração.
 
-| Fase | Escopo | Status |
-| --- | --- | --- |
-| 0 | Spring Boot, Maven, MongoDB, Lombok | Concluída |
-| 1 | Users, Accounts, Launches (CRUD + OFX) | Concluída |
-| 2 | Spring Security, JWT RS256, MFA TOTP | Concluída |
-| 3 | Testes unitários e de integração | Em progresso |
+| Fase | Escopo                                 | Status    |
+|------|----------------------------------------|-----------|
+| 0    | Spring Boot, Maven, MongoDB, Lombok    | Concluída |
+| 1    | Users, Accounts, Launches (CRUD + OFX) | Concluída |
+| 2    | Spring Security, JWT RS256, MFA TOTP   | Concluída |
+| 3    | Testes unitários e de integração       | Concluída |
 
 ## Stack
 
@@ -44,15 +46,16 @@ cp .env.example .env
 
 Variáveis usadas pela aplicação:
 
-| Variável | Uso |
-| --- | --- |
-| `MONGO_URL` | URI do MongoDB (ex.: `mongodb://localhost:27017/finance_module`) |
-| `ADMIN_PASSWORD` | Senha do usuário admin criado no bootstrap |
-| `MFA_SECRET` | Chave AES para criptografar o secret TOTP no banco |
+| Variável         | Uso                                                              |
+|------------------|------------------------------------------------------------------|
+| `MONGO_URL`      | URI do MongoDB (ex.: `mongodb://localhost:27017/finance_module`) |
+| `ADMIN_PASSWORD` | Senha do usuário admin criado no bootstrap                       |
+| `MFA_SECRET`     | Chave AES para criptografar o secret TOTP no banco               |
 
 A configuração do Spring está em `src/main/resources/application.yml`.
 
-2. Gere o par de chaves RSA (4096 bits) usado para assinar JWT. O script cria `keys/rsa_key.pem` e `keys/rsa_key.pub` (a pasta `keys/` está no `.gitignore`):
+2. Gere o par de chaves RSA (4096 bits) usado para assinar JWT. O script cria `keys/rsa_key.pem` e `keys/rsa_key.pub` (a
+   pasta `keys/` está no `.gitignore`):
 
 ```bash
 ./keys.sh
@@ -83,7 +86,8 @@ Windows:
 mvnw.cmd spring-boot:run
 ```
 
-Na primeira subida, o `AdminSeedRunner` cria o usuário `admin@admin.com.br` com a senha de `ADMIN_PASSWORD`, se ele ainda não existir.
+Na primeira subida, o `AdminSeedRunner` cria o usuário `admin@admin.com.br` com a senha de `ADMIN_PASSWORD`, se ele
+ainda não existir.
 
 ## Autenticação
 
@@ -92,8 +96,10 @@ Rotas autenticadas esperam `Authorization: Bearer <token>`.
 Fluxo:
 
 1. `POST /api/v1/auth/login` com e-mail e senha.
-2. Se o 2FA ainda não estiver ativo, a resposta inclui token de setup, QR Code (Base64) e URL `otpauth://`. Confirme em `POST /api/v1/auth/mfa/enable`.
-3. Se o 2FA já estiver ativo, a resposta traz um pre-token. Envie o código TOTP em `POST /api/v1/auth/mfa/verify` para obter o access token.
+2. Se o 2FA ainda não estiver ativo, a resposta inclui token de setup, QR Code (Base64) e URL `otpauth://`. Confirme em
+   `POST /api/v1/auth/mfa/enable`.
+3. Se o 2FA já estiver ativo, a resposta traz um pre-token. Envie o código TOTP em `POST /api/v1/auth/mfa/verify` para
+   obter o access token.
 4. Admin pode resetar MFA em `POST /api/v1/auth/mfa/reset`.
 
 Rotas públicas:
@@ -116,23 +122,23 @@ Base: `/api/v1`
 
 ### Auth — `/api/v1/auth`
 
-| Método | Path | Descrição |
-| --- | --- | --- |
-| POST | `/login` | Valida credenciais e inicia o fluxo MFA |
-| POST | `/mfa/enable` | Ativa 2FA após o setup |
-| POST | `/mfa/verify` | Valida o código TOTP e devolve access token |
-| POST | `/mfa/reset` | Reseta MFA (admin) |
+| Método | Path          | Descrição                                   |
+|--------|---------------|---------------------------------------------|
+| POST   | `/login`      | Valida credenciais e inicia o fluxo MFA     |
+| POST   | `/mfa/enable` | Ativa 2FA após o setup                      |
+| POST   | `/mfa/verify` | Valida o código TOTP e devolve access token |
+| POST   | `/mfa/reset`  | Reseta MFA (admin)                          |
 
 ### Users — `/api/v1/users`
 
-| Método | Path | Descrição |
-| --- | --- | --- |
-| GET | `/` | Lista usuários (admin) |
-| GET | `/{id}` | Busca por id |
-| POST | `/` | Cadastro |
-| POST | `/create-admin` | Cria admin (admin) |
-| PUT | `/{id}` | Atualiza |
-| DELETE | `/{id}` | Remove (admin) |
+| Método | Path            | Descrição              |
+|--------|-----------------|------------------------|
+| GET    | `/`             | Lista usuários (admin) |
+| GET    | `/{id}`         | Busca por id           |
+| POST   | `/`             | Cadastro               |
+| POST   | `/create-admin` | Cria admin (admin)     |
+| PUT    | `/{id}`         | Atualiza               |
+| DELETE | `/{id}`         | Remove (admin)         |
 
 ### Accounts — `/api/v1/accounts`
 
@@ -172,15 +178,35 @@ Persistência MongoDB: collections `users`, `bankAccounts` e `launches`.
 
 ## Testes
 
+Unix:
+
 ```bash
 ./mvnw test
 ```
 
-Há um teste de smoke (`FinanceModuleApplicationTests`). Ampliar unitários e integração é o próximo foco.
+Windows:
+
+```bash
+mvnw.cmd test
+```
+
+A suíte unitária usa JUnit 5 e Mockito (sem subir Spring nem MongoDB). Helpers ficam em
+`src/test/java/.../support/TestSupport.java` (SecurityContext e par RSA para JWT).
+
+Cobertura atual:
+
+| Área          | O que é testado                                                              |
+|---------------|------------------------------------------------------------------------------|
+| Auth          | Login/MFA, JWT RS256, filtro de autenticação, UserDetails, TOTP, DTOs        |
+| Users         | CRUD, endereço, mapper, validação de create/update                           |
+| Accounts      | CRUD, ownership, normalização do banco, mapper, validação                    |
+| Launches      | CRUD e saldo, parser OFX (banco/cartão, duplicatas, erros), mapper, SGML→XML |
+| Cross-cutting | AES, ObjectId, exception handlers, `ApiError`, seed do admin                 |
+
+Smoke: `FinanceModuleApplicationTests` só verifica se a classe da aplicação está disponível.
 
 ## Próximos passos
 
-- Ampliar cobertura de testes (unitários e integração)
 - Documentar a API em OpenAPI / Postman
 - Definir licença de distribuição
 
