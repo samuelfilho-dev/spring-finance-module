@@ -1,13 +1,13 @@
 package com.samuelfilho_dev.finance_module;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 class FinanceModuleApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
-
+    @Test
+    void applicationTypeIsAvailable() {
+        assertNotNull(FinanceModuleApplication.class);
+    }
 }

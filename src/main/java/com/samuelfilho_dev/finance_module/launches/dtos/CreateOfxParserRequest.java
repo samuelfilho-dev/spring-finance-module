@@ -2,6 +2,7 @@ package com.samuelfilho_dev.finance_module.launches.dtos;
 
 import com.samuelfilho_dev.finance_module.validators.ObjectId;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.web.multipart.MultipartFile;
 
 public record CreateOfxParserRequest(
@@ -10,7 +11,7 @@ public record CreateOfxParserRequest(
         @ObjectId
         String bankAccountId,
 
-        @NotBlank(message = "Arquivo OFX é requerido")
+        @NotNull(message = "Arquivo OFX é requerido")
         MultipartFile file
 ) {
 }
