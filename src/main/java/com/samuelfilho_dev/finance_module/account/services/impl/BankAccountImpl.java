@@ -8,23 +8,29 @@ import com.samuelfilho_dev.finance_module.account.enums.BankAccountStatus;
 import com.samuelfilho_dev.finance_module.account.mappers.BankAccountMapper;
 import com.samuelfilho_dev.finance_module.account.repositories.BankAccountRepository;
 import com.samuelfilho_dev.finance_module.account.services.BankAccountService;
+import com.samuelfilho_dev.finance_module.auth.entities.AuthenticatedUser;
 import com.samuelfilho_dev.finance_module.exceptions.BusinessException;
+import com.samuelfilho_dev.finance_module.exceptions.ForbiddenException;
 import com.samuelfilho_dev.finance_module.exceptions.NotFoundException;
 import com.samuelfilho_dev.finance_module.users.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class BankAccountImpl implements BankAccountService {
+    private final SecurityContextHolderStrategy securityContextHolderStrategy =
+            SecurityContextHolder.getContextHolderStrategy();
+
     private final BankAccountRepository bankAccountRepository;
     private final UserRepository userRepository;
 
@@ -33,6 +39,14 @@ public class BankAccountImpl implements BankAccountService {
 
     @Override
     public BankAccountResponse createBankAccount(CreateBankAccountRequest payload) {
+        var auth = securityContextHolderStrategy.getContext().getAuthentication();
+        var user = (AuthenticatedUser) Objects.requireNonNull(auth).getPrincipal();
+
+        if (!user.getId().equals(payload.userId())) {
+            log.warn("Usuario {} tentou criar uma conta bancaria para o usuario {}", user.getId(), payload.userId());
+            throw new ForbiddenException("Você não tem permissão para criar uma conta bancária para outro usuário");
+        }
+
         userRepository.findById(payload.userId())
                 .orElseThrow(() -> new NotFoundException("Usuario não encontrado"));
 
@@ -53,20 +67,26 @@ public class BankAccountImpl implements BankAccountService {
 
     @Override
     public List<BankAccountResponse> findAllBankAccounts() {
+        var auth = securityContextHolderStrategy.getContext().getAuthentication();
+        var user = (AuthenticatedUser) Objects.requireNonNull(auth).getPrincipal();
+
         var bankAccounts = bankAccountRepository
                 .findAll()
                 .stream()
                 .filter(bankAccount -> bankAccount.getStatus() == BankAccountStatus.ACTIVE)
+                .filter(bankAccount -> {
+                    var userId = bankAccount.getUserId();
+                    return userId != null && userId.toString().equals(Objects.requireNonNull(user).getId());
+                })
                 .toList();
 
-        log.info("Contas Bancarias foram listadas");
+        log.info("Contas Bancarias do usuario {} foram encontradas", user.getId());
         return bankAccountMapper.toResponseList(bankAccounts);
     }
 
     @Override
     public BankAccountResponse findBankAccountById(String id) {
-        var bankAccount = bankAccountRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
+        var bankAccount = this.getBankAccount(id);
 
         log.info("Conta Bancaria com id {} foi encontrada", bankAccount.getId());
         return bankAccountMapper.toResponse(bankAccount);
@@ -74,8 +94,7 @@ public class BankAccountImpl implements BankAccountService {
 
     @Override
     public BankAccountResponse updateBankAccount(String id, UpdateBankAccountRequest payload) {
-        var bankAccount = bankAccountRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
+        var bankAccount = this.getBankAccount(id);
 
         bankAccount.setBankName(payload.bankName());
         bankAccount.setAgency(payload.agency());
@@ -89,13 +108,27 @@ public class BankAccountImpl implements BankAccountService {
 
     @Override
     public void deleteBankAccount(String id) {
-        var bankAccount = bankAccountRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
+        var bankAccount = this.getBankAccount(id);
 
         bankAccount.setStatus(BankAccountStatus.INACTIVE);
 
         log.info("Conta Bancaria foi deletada");
         bankAccountRepository.save(bankAccount);
+    }
+
+    private BankAccount getBankAccount(String id) {
+        var auth = securityContextHolderStrategy.getContext().getAuthentication();
+        var user = (AuthenticatedUser) Objects.requireNonNull(auth).getPrincipal();
+
+        var bankAccount = bankAccountRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
+
+        if (!bankAccount.getUserId().toString().equals(Objects.requireNonNull(user).getId())) {
+            log.warn("Usuario {} tentou acessar a conta bancaria {} sem permissão", user.getId(), bankAccount.getId());
+            throw new ForbiddenException("Você não tem permissão para acessar esta conta bancária");
+        }
+
+        return bankAccount;
     }
 
     private String normalizeBankAccountName(String name) {

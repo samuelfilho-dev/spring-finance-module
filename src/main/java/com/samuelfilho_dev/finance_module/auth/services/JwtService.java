@@ -27,6 +27,7 @@ import java.util.Map;
 public class JwtService {
     public static final String CLAIM_TYPE = "type";
     public static final String CLAIM_ROLES = "roles";
+    public static final String CLAIM_USER_ID = "userId";
     public static final String TYPE_ACCESS = "ACCESS";
     public static final String TYPE_PRE_AUTH = "PRE_AUTH";
     public static final String TYPE_SETUP = "SETUP_2FA";
@@ -65,7 +66,11 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(user.getEmail())
-                .claims(Map.of(CLAIM_TYPE, TYPE_ACCESS, CLAIM_ROLES, List.of(user.getRole())))
+                .claims(Map.of(
+                        CLAIM_TYPE, TYPE_ACCESS,
+                        CLAIM_ROLES, List.of(user.getRole()),
+                        CLAIM_USER_ID, user.getId()
+                ))
                 .issuer(issue)
                 .issuedAt(now)
                 .expiration(expiry)
@@ -80,7 +85,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(user.getEmail())
-                .claims(Map.of(CLAIM_TYPE, TYPE_PRE_AUTH))
+                .claims(Map.of(CLAIM_TYPE, TYPE_PRE_AUTH, CLAIM_USER_ID, user.getId()))
                 .issuer(issue)
                 .issuedAt(now)
                 .expiration(expiry)
@@ -94,7 +99,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(user.getEmail())
-                .claims(Map.of(CLAIM_TYPE, TYPE_SETUP))
+                .claims(Map.of(CLAIM_TYPE, TYPE_SETUP, CLAIM_USER_ID, user.getId()))
                 .issuer(issue)
                 .issuedAt(now)
                 .expiration(expiry)
@@ -116,6 +121,10 @@ public class JwtService {
 
     public String extractType(Claims claims) {
         return claims.get(CLAIM_TYPE, String.class);
+    }
+
+    public String extractUserId(Claims claims) {
+        return claims.get(CLAIM_USER_ID, String.class);
     }
 
     @SuppressWarnings("unchecked")

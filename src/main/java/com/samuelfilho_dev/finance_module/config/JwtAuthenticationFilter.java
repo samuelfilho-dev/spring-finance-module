@@ -1,5 +1,6 @@
 package com.samuelfilho_dev.finance_module.config;
 
+import com.samuelfilho_dev.finance_module.auth.entities.AuthenticatedUser;
 import com.samuelfilho_dev.finance_module.auth.services.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -89,13 +90,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void authenticate(HttpServletRequest request, Claims claims) {
+        var userId = jwtService.extractUserId(claims);
         var email = jwtService.extractEmail(claims);
         var roles = jwtService.extractRoles(claims);
 
         List<SimpleGrantedAuthority> authorities = roles == null ? List.of() :
                 roles.stream().map(SimpleGrantedAuthority::new).toList();
 
-        var authToken = new UsernamePasswordAuthenticationToken(email, null, authorities);
+        if (userId == null || userId.isBlank()) {
+            throw new IllegalArgumentException("Token JWT sem userId");
+        }
+
+        var principal = new AuthenticatedUser(userId, email, null, authorities);
+        var authToken = new UsernamePasswordAuthenticationToken(principal, null, authorities);
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
     }
