@@ -1,5 +1,6 @@
 package com.samuelfilho_dev.finance_module.launches.entities;
 
+import com.samuelfilho_dev.finance_module.launches.enums.LaunchCategory;
 import com.samuelfilho_dev.finance_module.launches.enums.LaunchType;
 import lombok.*;
 import org.bson.types.ObjectId;
@@ -32,6 +33,8 @@ public class Launch {
     private LaunchType type;
 
     private String fitId;
+
+    private LaunchCategory category;
 
     private ObjectId userId;
 

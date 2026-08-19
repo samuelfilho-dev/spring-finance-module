@@ -9,6 +9,7 @@ import com.samuelfilho_dev.finance_module.launches.dtos.CreateOfxParserRequest;
 import com.samuelfilho_dev.finance_module.launches.dtos.OfxResponse;
 import com.samuelfilho_dev.finance_module.launches.entities.Launch;
 import com.samuelfilho_dev.finance_module.launches.enums.AccountOfxType;
+import com.samuelfilho_dev.finance_module.launches.enums.LaunchCategory;
 import com.samuelfilho_dev.finance_module.launches.enums.LaunchType;
 import com.samuelfilho_dev.finance_module.launches.mappers.LaunchMapper;
 import com.samuelfilho_dev.finance_module.launches.ofx.OfxAccount;
@@ -93,6 +94,7 @@ public class OfxParserServiceImpl implements OfxParserService {
                                     .launchDate(transaction.datePosted().atStartOfDay(ZoneOffset.UTC).toInstant())
                                     .amount(transaction.amount().abs())
                                     .fitId(transaction.fitId())
+                                    .category(LaunchCategory.OTHER)
                                     .type(transaction.amount().compareTo(BigDecimal.ZERO) > 0
                                             ? LaunchType.RECIPE
                                             : LaunchType.EXPENSE

@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         var status = org.springframework.http.HttpStatus.BAD_REQUEST;
-        return ResponseEntity.status(status).body(ApiError.of(status, "Erro ao realizar o parser no JSON"));
+        return ResponseEntity.status(status).body(ApiError.of(status, ex.getMessage()));
     }
 
     @ExceptionHandler(BusinessException.class)

@@ -78,6 +78,7 @@ public class LaunchServiceImpl implements LaunchService {
                 .launchDate(payload.launchDate())
                 .amount(payload.amount())
                 .type(payload.type())
+                .category(payload.category())
                 .userId(new ObjectId(Objects.requireNonNull(user).getId()))
                 .bankAccountId(new ObjectId(payload.bankAccountId()))
                 .build();
@@ -117,6 +118,7 @@ public class LaunchServiceImpl implements LaunchService {
         launch.setTitle(payload.title());
         launch.setDescription(payload.description());
         launch.setLaunchDate(payload.launchDate());
+        launch.setCategory(payload.category());
         launch.setAmount(payload.amount());
         launch.setType(payload.type());
 

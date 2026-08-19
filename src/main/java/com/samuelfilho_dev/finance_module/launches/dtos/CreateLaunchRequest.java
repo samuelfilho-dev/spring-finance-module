@@ -1,5 +1,6 @@
 package com.samuelfilho_dev.finance_module.launches.dtos;
 
+import com.samuelfilho_dev.finance_module.launches.enums.LaunchCategory;
 import com.samuelfilho_dev.finance_module.launches.enums.LaunchType;
 import com.samuelfilho_dev.finance_module.validators.ObjectId;
 import jakarta.validation.constraints.NotBlank;
@@ -26,6 +27,9 @@ public record CreateLaunchRequest(
 
         @NotNull(message = "Tipo do Lançamento é requerido")
         LaunchType type,
+
+        @NotNull(message = "Categoria do Lançamento é requerida")
+        LaunchCategory category,
 
         @NotBlank(message = "ID da Conta Bancaria é requerida")
         @ObjectId

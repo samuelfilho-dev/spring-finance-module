@@ -1,5 +1,6 @@
 package com.samuelfilho_dev.finance_module.launches.dtos;
 
+import com.samuelfilho_dev.finance_module.launches.enums.LaunchCategory;
 import com.samuelfilho_dev.finance_module.launches.enums.LaunchType;
 
 import java.math.BigDecimal;
@@ -11,6 +12,7 @@ public record LaunchResponse(
         String description,
         Instant launchDate,
         BigDecimal amount,
-        LaunchType type
+        LaunchType type,
+        LaunchCategory category
 ) {
 }
