@@ -1,6 +1,7 @@
 package com.samuelfilho_dev.finance_module.users.services.impl;
 
 import com.samuelfilho_dev.finance_module.auth.dtos.AuthPreTokenResponse;
+import com.samuelfilho_dev.finance_module.auth.entities.AuthenticatedUser;
 import com.samuelfilho_dev.finance_module.auth.services.JwtService;
 import com.samuelfilho_dev.finance_module.auth.services.MfaFactorService;
 import com.samuelfilho_dev.finance_module.exceptions.BusinessException;
@@ -22,16 +23,22 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.LookupOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
+    private final SecurityContextHolderStrategy securityContextHolderStrategy =
+            SecurityContextHolder.getContextHolderStrategy();
+
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
 
@@ -126,6 +133,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse findUserById(String id) {
+        var auth = securityContextHolderStrategy.getContext().getAuthentication();
+        var authUser = (AuthenticatedUser) Objects.requireNonNull(auth).getPrincipal();
+
+        if (!authUser.getId().equals(id)) {
+            log.warn("Usuario {} tentou acessar o usuario {} sem permissão", authUser.getId(), id);
+            throw new NotFoundException("Usuário não encontrado");
+        }
+
         log.info("Buscando o usuario pelo id: {}", id);
 
         var addressLookup = createAddressLookup();
