@@ -27,10 +27,6 @@ public record CreateLaunchRequest(
         @NotNull(message = "Tipo do Lançamento é requerido")
         LaunchType type,
 
-        @NotBlank(message = "ID do usuário é requerido")
-        @ObjectId
-        String userId,
-
         @NotBlank(message = "ID da Conta Bancaria é requerida")
         @ObjectId
         String bankAccountId

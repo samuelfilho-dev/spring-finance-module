@@ -1,6 +1,8 @@
 package com.samuelfilho_dev.finance_module.launches.services.impl;
 
 import com.samuelfilho_dev.finance_module.account.repositories.BankAccountRepository;
+import com.samuelfilho_dev.finance_module.auth.entities.AuthenticatedUser;
+import com.samuelfilho_dev.finance_module.exceptions.ForbiddenException;
 import com.samuelfilho_dev.finance_module.exceptions.NotFoundException;
 import com.samuelfilho_dev.finance_module.launches.dtos.CreateLaunchRequest;
 import com.samuelfilho_dev.finance_module.launches.dtos.LaunchResponse;
@@ -14,46 +16,61 @@ import com.samuelfilho_dev.finance_module.users.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class LaunchServiceImpl implements LaunchService {
+    private final SecurityContextHolderStrategy securityContextHolderStrategy =
+            SecurityContextHolder.getContextHolderStrategy();
+
     private final LaunchRepository launchRepository;
     private final BankAccountRepository bankAccountRepository;
 
     private final LaunchMapper launchMapper;
-    private final UserRepository userRepository;
 
     @Override
     public List<LaunchResponse> findAllLaunches() {
-        var launches = launchRepository.findAll();
+        var auth = securityContextHolderStrategy.getContext().getAuthentication();
+        var user = (AuthenticatedUser) Objects.requireNonNull(auth).getPrincipal();
 
-        log.info("Foi listado os lançamentos");
+        var launches = launchRepository
+                .findAll()
+                .stream()
+                .filter(launch -> launch.getUserId().toString().equals(user.getId()))
+                .toList();
+
+        log.info("Foram encontrados {} lançamentos para o usuário {}", launches.size(), user.getId());
         return launchMapper.toResponseList(launches);
     }
 
     @Override
     public LaunchResponse findLaunchById(String id) {
-        var launch = this.launchRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Lançamento não encontrado"));
+        var launch = this.getLaunch(id);
 
-        log.info("Foi encontrado lançamento com ID: {}", launch.getId());
+        log.info("Lançamento com id {} foi encontrado", launch.getId());
         return launchMapper.toResponse(launch);
     }
 
     @Override
     public LaunchResponse createLaunch(CreateLaunchRequest payload) {
-        userRepository.findById(payload.userId())
-                .orElseThrow(() -> new NotFoundException("Usuario não encontrado"));
+        var auth = securityContextHolderStrategy.getContext().getAuthentication();
+        var user = (AuthenticatedUser) Objects.requireNonNull(auth).getPrincipal();
 
         var bankAccount = bankAccountRepository.findById(payload.bankAccountId())
                 .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
+
+        if (!bankAccount.getUserId().toString().equals(user.getId())) {
+            throw new ForbiddenException("Você não tem permissão para criar lançamentos nesta conta");
+        }
 
         var launch = Launch.builder()
                 .title(payload.title())
@@ -61,7 +78,7 @@ public class LaunchServiceImpl implements LaunchService {
                 .launchDate(payload.launchDate())
                 .amount(payload.amount())
                 .type(payload.type())
-                .userId(new ObjectId(payload.userId()))
+                .userId(new ObjectId(Objects.requireNonNull(user).getId()))
                 .bankAccountId(new ObjectId(payload.bankAccountId()))
                 .build();
 
@@ -86,8 +103,7 @@ public class LaunchServiceImpl implements LaunchService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public LaunchResponse updateLaunch(String id, UpdateLaunchRequest payload) {
-        var launch = this.launchRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Lançamento não encontrado"));
+        var launch = this.getLaunch(id);
 
         var bankAccount = bankAccountRepository.findById(launch.getBankAccountId().toString())
                 .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
@@ -134,8 +150,7 @@ public class LaunchServiceImpl implements LaunchService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteLaunch(String id) {
-        var launch = this.launchRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Lançamento não encontrado"));
+        var launch = this.getLaunch(id);
 
         var bankAccount = bankAccountRepository.findById(launch.getBankAccountId().toString())
                 .orElseThrow(() -> new NotFoundException("Conta Bancaria não encontrada"));
@@ -153,6 +168,21 @@ public class LaunchServiceImpl implements LaunchService {
                 launch.getId(),
                 bankAccount.getId());
         this.launchRepository.delete(launch);
+    }
+
+    private Launch getLaunch(String id) {
+        var auth = securityContextHolderStrategy.getContext().getAuthentication();
+        var user = (AuthenticatedUser) Objects.requireNonNull(auth).getPrincipal();
+
+        var launch = launchRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Lançamento não encontrado"));
+
+        if (!launch.getUserId().toString().equals(Objects.requireNonNull(user).getId())) {
+            log.warn("Usuario {} tentou acessar o lançamento {} sem permissão", user.getId(), launch.getId());
+            throw new NotFoundException("Lançamento não encontrado");
+        }
+
+        return launch;
     }
 
 }

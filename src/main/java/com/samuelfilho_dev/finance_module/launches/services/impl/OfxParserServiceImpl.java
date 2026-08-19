@@ -1,6 +1,9 @@
 package com.samuelfilho_dev.finance_module.launches.services.impl;
 
 import com.samuelfilho_dev.finance_module.account.repositories.BankAccountRepository;
+import com.samuelfilho_dev.finance_module.auth.entities.AuthenticatedUser;
+import com.samuelfilho_dev.finance_module.exceptions.ForbiddenException;
+import com.samuelfilho_dev.finance_module.exceptions.NotFoundException;
 import com.samuelfilho_dev.finance_module.exceptions.OfxException;
 import com.samuelfilho_dev.finance_module.launches.dtos.CreateOfxParserRequest;
 import com.samuelfilho_dev.finance_module.launches.dtos.OfxResponse;
@@ -20,6 +23,8 @@ import com.samuelfilho_dev.finance_module.users.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -36,6 +41,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -46,9 +52,11 @@ import javax.xml.parsers.DocumentBuilderFactory;
 @Slf4j
 @RequiredArgsConstructor
 public class OfxParserServiceImpl implements OfxParserService {
+    private final SecurityContextHolderStrategy securityContextHolderStrategy =
+            SecurityContextHolder.getContextHolderStrategy();
+
     public static final DateTimeFormatter OFX_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    private final UserRepository userRepository;
     private final BankAccountRepository bankAccountRepository;
     private final LaunchRepository launchRepository;
 
@@ -57,14 +65,20 @@ public class OfxParserServiceImpl implements OfxParserService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public OfxResponse exec(CreateOfxParserRequest payload) {
+        var auth = securityContextHolderStrategy.getContext().getAuthentication();
+        var user = (AuthenticatedUser) Objects.requireNonNull(auth).getPrincipal();
+
         try {
-            log.info("Iniciando processamento do arquivo OFX para o usuário: {}, conta bancária: {}", payload.userId(), payload.bankAccountId());
-
-            this.userRepository.findById(payload.userId())
-                    .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + payload.userId()));
-
             var bankAccount = this.bankAccountRepository.findById(payload.bankAccountId())
-                    .orElseThrow(() -> new RuntimeException("Conta bancária não encontrada: " + payload.bankAccountId()));
+                    .orElseThrow(() -> new NotFoundException("Conta bancária não encontrada: " + payload.bankAccountId()));
+
+            if (!bankAccount.getUserId().toString().equals(user.getId())) {
+                log.warn("Usuario {} tentou processar um arquivo OFX para a conta bancaria {} sem permissão", user.getId(), bankAccount.getId());
+                throw new ForbiddenException("Você não tem permissão para processar um arquivo OFX para esta conta bancária");
+            }
+
+            log.info("Iniciando processamento do arquivo OFX para o usuário: {}, conta bancária: {}", user.getId(), payload.bankAccountId());
+
 
             var oldBalance = bankAccount.getBalance();
 
@@ -72,7 +86,7 @@ public class OfxParserServiceImpl implements OfxParserService {
             var launches = statements.stream()
                     .flatMap(statement -> statement.transactions().stream()
                             .map(transaction -> Launch.builder()
-                                    .userId(new ObjectId(payload.userId()))
+                                    .userId(new ObjectId(user.getId()))
                                     .bankAccountId(new ObjectId(payload.bankAccountId()))
                                     .title(transaction.memo())
                                     .description(null)
@@ -84,12 +98,12 @@ public class OfxParserServiceImpl implements OfxParserService {
                                             : LaunchType.EXPENSE
                                     )
                                     .build()))
-                    .filter(launch -> !this.launchRepository.existsByFitId(launch.getFitId()))
+                    .filter(launch -> !this.launchRepository.existsByFitIdAndUserId(launch.getFitId(), user.getId()))
                     .toList();
 
             var salvedLaunches = this.launchRepository.saveAll(launches);
 
-            log.info("Processamento do arquivo OFX concluído. {} lançamentos salvos para o usuário: {}, conta bancária: {}", salvedLaunches.size(), payload.userId(), payload.bankAccountId());
+            log.info("Processamento do arquivo OFX concluído. {} lançamentos salvos para o usuário: {}, conta bancária: {}", salvedLaunches.size(), user.getId(), payload.bankAccountId());
 
             var newBalance = LaunchUtils.calculateNewBalanceWithLaunches(salvedLaunches, oldBalance);
 

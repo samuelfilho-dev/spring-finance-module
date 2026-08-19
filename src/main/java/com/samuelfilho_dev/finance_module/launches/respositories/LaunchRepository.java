@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface LaunchRepository extends MongoRepository<Launch, String> {
-    boolean existsByFitId(String fitId);
+    boolean existsByFitIdAndUserId(String fitId, String userId);
 }
