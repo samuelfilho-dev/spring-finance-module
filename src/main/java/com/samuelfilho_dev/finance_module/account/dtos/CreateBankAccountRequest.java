@@ -15,10 +15,6 @@ public record CreateBankAccountRequest(
         @NotBlank(message = "Número da Conta é requerido")
         String accountNumber,
 
-        BigDecimal balance,
-
-        @NotBlank
-        @ObjectId
-        String userId
+        BigDecimal balance
 ) {
 }

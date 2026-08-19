@@ -12,7 +12,6 @@ import com.samuelfilho_dev.finance_module.auth.entities.AuthenticatedUser;
 import com.samuelfilho_dev.finance_module.exceptions.BusinessException;
 import com.samuelfilho_dev.finance_module.exceptions.ForbiddenException;
 import com.samuelfilho_dev.finance_module.exceptions.NotFoundException;
-import com.samuelfilho_dev.finance_module.users.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
@@ -27,12 +26,11 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class BankAccountImpl implements BankAccountService {
+public class BankAccountServiceImpl implements BankAccountService {
     private final SecurityContextHolderStrategy securityContextHolderStrategy =
             SecurityContextHolder.getContextHolderStrategy();
 
     private final BankAccountRepository bankAccountRepository;
-    private final UserRepository userRepository;
 
     private final BankAccountMapper bankAccountMapper;
 
@@ -42,21 +40,13 @@ public class BankAccountImpl implements BankAccountService {
         var auth = securityContextHolderStrategy.getContext().getAuthentication();
         var user = (AuthenticatedUser) Objects.requireNonNull(auth).getPrincipal();
 
-        if (!user.getId().equals(payload.userId())) {
-            log.warn("Usuario {} tentou criar uma conta bancaria para o usuario {}", user.getId(), payload.userId());
-            throw new ForbiddenException("Você não tem permissão para criar uma conta bancária para outro usuário");
-        }
-
-        userRepository.findById(payload.userId())
-                .orElseThrow(() -> new NotFoundException("Usuario não encontrado"));
-
         var newBankAccount = BankAccount.builder()
                 .bankName(this.normalizeBankAccountName(payload.bankName()))
                 .agency(payload.agency())
                 .accountNumber(payload.accountNumber())
                 .balance(Objects.requireNonNullElse(payload.balance(), BigDecimal.ZERO))
                 .status(BankAccountStatus.ACTIVE)
-                .userId(new ObjectId(payload.userId()))
+                .userId(new ObjectId(Objects.requireNonNull(user).getId()))
                 .build();
 
         var bankAccount = bankAccountRepository.save(newBankAccount);
