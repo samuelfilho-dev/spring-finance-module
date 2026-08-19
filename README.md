@@ -1,6 +1,6 @@
 # Finance Module
 
-API REST modular para gestão de usuários, contas bancárias e lançamentos financeiros. O projeto usa Java 17, Spring Boot
+API REST modular para gestão de usuários, contas bancárias e lançamentos financeiros. O projeto usa Java 21, Spring Boot
 4.1 e MongoDB. Autenticação é JWT (RSA) com 2FA TOTP obrigatório. Lançamentos podem ser criados manualmente ou
 importados de arquivos OFX.
 
@@ -19,7 +19,7 @@ em IA.
 
 ## Stack
 
-- Java 17
+- Java 21+
 - Spring Boot 4.1.0
 - Spring Web MVC (API versionada no path)
 - Spring Data MongoDB
@@ -33,7 +33,7 @@ em IA.
 
 ## Requisitos
 
-- Java 17+
+- Java 21+
 - Maven (ou o wrapper `mvnw` / `mvnw.cmd`)
 - MongoDB em execução
 - OpenSSL (para gerar o par de chaves RSA)
