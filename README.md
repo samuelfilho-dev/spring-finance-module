@@ -6,14 +6,16 @@ importados de arquivos OFX.
 
 ## Status
 
-Fases 0, 1 e 2 estão concluídas. A fase 3 tem os testes unitários da API cobertos; faltam os testes de integração.
+As fases 0, 1, 2, 3 e 4 estão concluídas. A fase 4 expande o módulo de lançamentos com um assistente financeiro baseado
+em IA.
 
-| Fase | Escopo                                 | Status    |
-|------|----------------------------------------|-----------|
-| 0    | Spring Boot, Maven, MongoDB, Lombok    | Concluída |
-| 1    | Users, Accounts, Launches (CRUD + OFX) | Concluída |
-| 2    | Spring Security, JWT RS256, MFA TOTP   | Concluída |
-| 3    | Testes unitários e de integração       | Concluída |
+| Fase | Escopo                                             | Status    |
+|------|----------------------------------------------------|-----------|
+| 0    | Spring Boot, Maven, MongoDB, Lombok                | Concluída |
+| 1    | Users, Accounts, Launches (CRUD + OFX)             | Concluída |
+| 2    | Spring Security, JWT RS256, MFA TOTP               | Concluída |
+| 3    | Testes unitários e de integração                   | Concluída |
+| 4    | Spring AI + assistente financeiro para lançamentos | Concluída |
 
 ## Stack
 
@@ -25,6 +27,7 @@ Fases 0, 1 e 2 estão concluídas. A fase 3 tem os testes unitários da API cobe
 - Spring Validation
 - JWT (JJWT 0.12, assinatura RS256)
 - TOTP (`dev.samstevens.totp`)
+- Spring AI / OpenAI
 - MapStruct e Lombok
 - Maven Wrapper
 
@@ -46,11 +49,12 @@ cp .env.example .env
 
 Variáveis usadas pela aplicação:
 
-| Variável         | Uso                                                              |
-|------------------|------------------------------------------------------------------|
-| `MONGO_URL`      | URI do MongoDB (ex.: `mongodb://localhost:27017/finance_module`) |
-| `ADMIN_PASSWORD` | Senha do usuário admin criado no bootstrap                       |
-| `MFA_SECRET`     | Chave AES para criptografar o secret TOTP no banco               |
+| Variável         | Uso                                                                      |
+|------------------|--------------------------------------------------------------------------|
+| `MONGO_URL`      | URI do MongoDB (ex.: `mongodb://localhost:27017/finance_module`)         |
+| `ADMIN_PASSWORD` | Senha do usuário admin criado no bootstrap                               |
+| `MFA_SECRET`     | Chave AES para criptografar o secret TOTP no banco                       |
+| `OPENAI_API_KEY` | Chave da API da OpenAI usada pelo Spring AI para o assistente financeiro |
 
 A configuração do Spring está em `src/main/resources/application.yml`.
 
@@ -148,6 +152,15 @@ CRUD de contas bancárias (`bankName`, `agency`, `accountNumber`, `balance`, sta
 
 CRUD de lançamentos (receita `RECIPE` ou despesa `EXPENSE`, categoria, valor, data, conta).
 
+#### Chat financeiro
+
+```http
+GET /api/v1/launches/chat?question=Qual foi o saldo do mês atual?
+```
+
+O assistente usa Spring AI para responder perguntas sobre saldo, categorias, receitas, despesas e tendências com base
+nos lançamentos do usuário.
+
 Importação OFX (multipart):
 
 ```http
@@ -208,7 +221,6 @@ Smoke: `FinanceModuleApplicationTests` só verifica se a classe da aplicação e
 ## Próximos passos
 
 - Documentar a API em OpenAPI / Postman
-- Definir licença de distribuição
 
 ## Contribuição
 
@@ -216,7 +228,7 @@ Pull requests são bem-vindos. Abra issues para bugs e propostas de melhoria.
 
 ## Licença
 
-Ainda não definida.
+Este projeto está licenciado sob a [MIT License](./LICENSE). A licença permite uso, cópia, modificação, fusão, publicação, distribuição e venda do software, desde que o aviso de copyright e a permissão sejam mantidos.
 
 ## Contato
 
