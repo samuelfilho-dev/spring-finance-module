@@ -21,6 +21,12 @@ spring:
         path-segment: 1
       supported:
         - 1
+  ai:
+    openai:
+      api-key: '${OPENAI_API_KEY}'
+    chat:
+      options:
+        model: gpt-4o-mini
 
 logging:
   file:
